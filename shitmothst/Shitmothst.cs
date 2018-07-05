@@ -35,6 +35,9 @@ namespace shitmothst
         {
             redwingInstalled = (from assembly in AppDomain.CurrentDomain.GetAssemblies()
                 from type in assembly.GetTypes() where type.Namespace == "redwing" select type).Any();
+
+            blackmothInstalled = (from assembly in AppDomain.CurrentDomain.GetAssemblies()
+                from type in assembly.GetTypes() where type.Namespace == "BlackmothMod" select type).Any();
             
             ModHooks.Instance.AfterSavegameLoadHook += saveGame;
             ModHooks.Instance.NewGameHook += addComponent;
@@ -48,7 +51,7 @@ namespace shitmothst
         private void addComponent()
         {
             log("Adding shitmothst to game.");
-
+            
             GameManager.instance.gameObject.AddComponent<dash_hooks>();
 
             if (redwingInstalled)
@@ -58,8 +61,10 @@ namespace shitmothst
             }
             else if (!redwingInstalled && !blackmothInstalled)
             {
-                GameManager.instance.gameObject.AddComponent<ads_for_better_mods>();
+                //GameManager.instance.gameObject.AddComponent<ads_for_better_mods>();
             }
+            
+            GameManager.instance.gameObject.AddComponent<ads_for_better_mods>();
         }
 
         public override int LoadPriority()

@@ -42,8 +42,6 @@ namespace shitmothst
                 relY = (dash_hooks.rng.NextDouble() - 0.5) * 20.0;
 
                 spiralAngel = Math.Atan2(initDirection.y, initDirection.x);
-                Modding.Logger.Log("Angel is " + spiralAngel + " and relX is " + relX + " and relY is " + relY);
-                
                 setupSpiral = true;
             }
             

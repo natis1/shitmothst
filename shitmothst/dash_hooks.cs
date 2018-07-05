@@ -22,10 +22,13 @@ namespace shitmothst
         private dash_antics dashAntics;
         private bool hasSharpShadowCached;
         private bool autoDashing;
+        private bool turboDashing;
 
         private int dashAnticNumber;
 
         private const int TOTAL_DASH_ANTICS = 7;
+
+        private const double maxTurboTime = 12.0;
 
 
         
@@ -33,6 +36,8 @@ namespace shitmothst
         {
             ModHooks.Instance.DashPressedHook -= dashTapped;
             ModHooks.Instance.DashVectorHook -= doDashDirection;
+            UnityEngine.SceneManagement.SceneManager.activeSceneChanged -= resetAutoDash;
+
         }
 
         private void Start()
@@ -57,10 +62,22 @@ namespace shitmothst
             }
         }
 
+        private void Update()
+        {
+            if (autoDashing)
+            {
+                HeroController.instance.cState.invulnerable = true;
+            }
+            
+            
+        }
+
         private void resetAutoDash(Scene arg0, Scene arg1)
         {
             autoDashing = false;
+            turboDashing = false;
             dashAntics.resetAngelMemes();
+            
         }
 
         private IEnumerator configureHero()
@@ -99,15 +116,15 @@ namespace shitmothst
             switch (dashAnticNumber)
             {
                 case 0:
-                    log("diagonal dash");
+                    //log("diagonal dash");
                     ret = dashAntics.diagonalDash(ret);
                     break;
                 case 1:
-                    log("inverse dash");
+                    //log("inverse dash");
                     ret = dashAntics.inverseDash(ret);
                     break;
                 case 2:
-                    log("wave dash");
+                    //log("wave dash");
                     ret = dashAntics.waveDash(ret);
                     break;
                 case 3:
@@ -126,7 +143,7 @@ namespace shitmothst
                     
                     return new Vector2(0f, 40f);
                 case 5:
-                    log("zero dash");
+                    //log("zero dash");
                     return Vector2.zero;
                 case 6:
                     if (autoDashing) return dashAntics.logSpiral(ret);
@@ -168,11 +185,18 @@ namespace shitmothst
             return ret;
         }
 
+        private IEnumerator setInvulnFalseAfterTime(float time)
+        {
+            yield return new WaitForSeconds(time);
+            
+            HeroController.instance.cState.invulnerable = false;
+        }
+
         private IEnumerator logDashWait()
         {
             float time = 0f;
 
-            while (time < 3.0f)
+            while (time < 3.0f && autoDashing)
             {
                 time += Time.deltaTime;
                 if (HeroController.instance.cState.dashing == false)
@@ -180,11 +204,13 @@ namespace shitmothst
                 yield return null;
             }
 
-            while (HeroController.instance.cState.dashing)
+            while (HeroController.instance.cState.dashing && autoDashing)
             {
                 yield return null;
             }
             autoDashing = false;
+
+            StartCoroutine(setInvulnFalseAfterTime(0.5f));
         }
 
         private IEnumerator descendingDank()
@@ -198,29 +224,57 @@ namespace shitmothst
             HeroController.instance.spellControl.Fsm.SetState("Quake Antic");
 
             autoDashing = false;
+            StartCoroutine(setInvulnFalseAfterTime(2.0f));
         }
 
         private IEnumerator blackmothTurboDash()
         {
             HeroActions direction = GameManager.instance.inputHandler.inputActions;
+            float timeRunning = 0;
+            float lastCheck = 0;
+            
+            // meme time. not the full length of the dash
+            // but this is how it used to be in blackmoth... seriously
+            const float checkEvery = 0.2f;
 
-            while (direction.dash.IsPressed)
+            while (direction.dash.IsPressed && autoDashing && timeRunning < maxTurboTime)
             {
-                // meme time. not the full length of the dash
-                // but this is how it used to be in blackmoth... seriously
-                yield return new WaitForSeconds(0.3f);
-                dashConditionChecker(true);
+                yield return null;
+                timeRunning += Time.deltaTime;
+
+                if (timeRunning > (lastCheck + checkEvery))
+                {
+                    dashConditionChecker(true);
+                    lastCheck = timeRunning;
+                }
+                else
+                {
+                    doDash();
+                }
+                
+                
             }
             
             // run until the player taps the dash button a second time.
-            while (!direction.dash.IsPressed)
+            while (!direction.dash.IsPressed && autoDashing && timeRunning < maxTurboTime)
             {
-                yield return new WaitForSeconds(0.3f);
-                dashConditionChecker(true);
+                yield return null;
+                timeRunning += Time.deltaTime;
+                
+                if (timeRunning > (lastCheck + checkEvery))
+                {
+                    dashConditionChecker(true);
+                    lastCheck = timeRunning;
+                } else
+                {
+                    doDash();
+                }
             }
             
-            log("Disabling turbo button because you pressed dash a second time.");
+            log("Disabling turbo button because you pressed dash a second time. or ran out of time");
             autoDashing = false;
+            turboDashing = false;
+            StartCoroutine(setInvulnFalseAfterTime(0.5f));
             
             // gives them 0 dash right after for fun.
             dashAnticNumber = 5;
@@ -306,7 +360,7 @@ namespace shitmothst
         
         private void doDash()
         {
-            if (!autoDashing && (HeroController.instance.hero_state == ActorStates.no_input ||
+            if ( (!autoDashing || turboDashing) && (HeroController.instance.hero_state == ActorStates.no_input ||
                  HeroController.instance.hero_state == ActorStates.hard_landing ||
                  HeroController.instance.hero_state == ActorStates.dash_landing || !(dashCooldown <= 0f) ||
                  HeroController.instance.cState.dashing || HeroController.instance.cState.backDashing ||
