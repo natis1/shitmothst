@@ -61,10 +61,10 @@ namespace shitmothst
             }
             else if (!redwingInstalled && !blackmothInstalled)
             {
-                //GameManager.instance.gameObject.AddComponent<ads_for_better_mods>();
+                GameManager.instance.gameObject.AddComponent<ads_for_better_mods>();
             }
             
-            GameManager.instance.gameObject.AddComponent<ads_for_better_mods>();
+            //GameManager.instance.gameObject.AddComponent<ads_for_better_mods>();
         }
 
         public override int LoadPriority()
